@@ -52,6 +52,8 @@
 #include "base_station.h"
 #include "gps_helper.h"
 #include "../../definitions.h"
+#include <uORB/topics/mp_relative_dist.h>
+// #include <uORB/Publication.hpp>
 
 
 #define UBX_CONFIG_TIMEOUT    250 // ms, timeout for waiting ACK
@@ -895,6 +897,7 @@ public:
 
 	GPSDriverUBX(Interface gpsInterface, GPSCallbackPtr callback, void *callback_user,
 		     sensor_gps_s *gps_position, satellite_info_s *satellite_info,
+		     mp_relative_dist_s *mp_rel_dist,
 		     uint8_t dynamic_model = 7,
 		     float heading_offset = 0.f,
 		     UBXMode mode = UBXMode::Normal);
@@ -1047,6 +1050,8 @@ private:
 	 */
 	int waitForAck(const uint16_t msg, const unsigned timeout, const bool report);
 
+	// uORB::Publication<mp_relative_dist_s>	_mp_rel_dist_pub{ORB_ID(mp_relative_dist)};
+
 	const Interface _interface{};
 
 	gps_abstime             _disable_cmd_last{0};
@@ -1056,6 +1061,7 @@ private:
 	ubx_buf_t               _buf{};
 	ubx_decode_state_t      _decode_state{};
 	ubx_rxmsg_state_t       _rx_state{UBX_RXMSG_IGNORE};
+	mp_relative_dist_s 	*_mp_rel_dist{nullptr};
 
 	bool _configured{false};
 	bool _got_posllh{false};

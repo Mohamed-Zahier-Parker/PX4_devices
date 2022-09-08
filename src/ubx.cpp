@@ -68,12 +68,13 @@
 #define UBX_DEBUG(...)        {/*GPS_WARN(__VA_ARGS__);*/}
 
 GPSDriverUBX::GPSDriverUBX(Interface gpsInterface, GPSCallbackPtr callback, void *callback_user,
-			   sensor_gps_s *gps_position, satellite_info_s *satellite_info, uint8_t dynamic_model,
-			   float heading_offset, UBXMode mode) :
+			   sensor_gps_s *gps_position, satellite_info_s *satellite_info, mp_relative_dist_s *mp_rel_dist,
+			   uint8_t dynamic_model, float heading_offset, UBXMode mode) :
 	GPSBaseStationSupport(callback, callback_user),
 	_interface(gpsInterface),
 	_gps_position(gps_position),
 	_satellite_info(satellite_info),
+	_mp_rel_dist(mp_rel_dist),
 	_dyn_model(dynamic_model),
 	_mode(mode),
 	_heading_offset(heading_offset)
@@ -627,6 +628,8 @@ int GPSDriverUBX::configureDevice(const GNSSSystemsMask &gnssSystems)
 	cfgValsetPort(UBX_CFG_KEY_MSGOUT_UBX_NAV_DOP_I2C, 1, cfg_valset_msg_size);
 	cfgValsetPort(UBX_CFG_KEY_MSGOUT_UBX_NAV_SAT_I2C, (_satellite_info != nullptr) ? 10 : 0, cfg_valset_msg_size);
 	cfgValsetPort(UBX_CFG_KEY_MSGOUT_UBX_MON_RF_I2C, 1, cfg_valset_msg_size);
+
+	cfgValsetPort(UBX_CFG_KEY_MSGOUT_UBX_NAV_RELPOSNED_I2C, 3, cfg_valset_msg_size);
 
 	if (!sendMessage(UBX_MSG_CFG_VALSET, (uint8_t *)&_buf, cfg_valset_msg_size)) {
 		return -1;
@@ -1970,8 +1973,28 @@ GPSDriverUBX::payloadRxDone()
 				_gps_position->heading = heading;
 			}
 
+			// if (rel_pos_valid){
+			// 	// mp_relative_dist_s mp_rel_dist{};
+			// 	_mp_rel_dist->timestamp = gps_absolute_time();
+			// 	_mp_rel_dist->mp_rel_n = _buf.payload_rx_nav_relposned.relPosN * 1e-2f;
+			// 	_mp_rel_dist->mp_rel_e = _buf.payload_rx_nav_relposned.relPosE * 1e-2f;
+			// 	_mp_rel_dist->mp_rel_d = _buf.payload_rx_nav_relposned.relPosD * 1e-2f;
+			// 	// _mp_rel_dist_pub.publish(mp_rel_dist);
+			// }
+
+			// _mp_rel_dist->timestamp = gps_absolute_time();
+			// _mp_rel_dist->mp_rel_n = 45.0f;
+			// _mp_rel_dist->mp_rel_e = (float)_buf.payload_rx_nav_relposned.relPosE * 1e-2f;
+			// _mp_rel_dist->mp_rel_d = (float)_buf.payload_rx_nav_relposned.relPosD * 1e-2f;
+			// _mp_rel_dist->mp_rel_head = (float)_buf.payload_rx_nav_relposned.relPosHeading * 1e-5f;
+
 			ret = 1;
 		}
+		_mp_rel_dist->timestamp = gps_absolute_time();
+		_mp_rel_dist->mp_rel_n = (float)_buf.payload_rx_nav_relposned.relPosN * 1e-2f;
+		_mp_rel_dist->mp_rel_e = (float)_buf.payload_rx_nav_relposned.relPosE * 1e-2f;
+		_mp_rel_dist->mp_rel_d = (float)_buf.payload_rx_nav_relposned.relPosD * 1e-2f;
+		_mp_rel_dist->mp_rel_head = (float)_buf.payload_rx_nav_relposned.relPosHeading * 1e-5f;
 
 		break;
 
